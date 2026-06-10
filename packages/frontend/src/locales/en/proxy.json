@@ -1,0 +1,20 @@
+{
+  "title": "Proxy Manager",
+  "description": "Manage {{count}} proxies for your profiles",
+  "checkAll": "Check All",
+  "import": "Quick Import",
+  "importTitle": "Bulk Import Proxies",
+  "importFormat": "Format: IP:PORT:USER:PASS (one per line)",
+  "noProxiesTitle": "No Proxies Found",
+  "noProxiesDesc": "Add your HTTP or SOCKS5 proxies to securely isolate profile footprints.",
+  "protocol": "Protocol",
+  "auth": "Auth",
+  "geo": "GEO",
+  "status": "Status / Ping",
+  "authenticated": "Yes",
+  "none": "None",
+  "checking": "Checking...",
+  "dead": "DEAD",
+  "live": "LIVE",
+  "delete": "Delete Proxy"
+}

@@ -1,0 +1,15 @@
+{
+  "name": "@botzvn/api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "check": "node --check src/server.js && NODE_ENV=test node -e \"import('./src/server.js').then(() => { console.log('api shell import ok'); process.exit(0); }).catch((err) => { console.error(err); process.exit(1); })\""
+  },
+  "dependencies": {
+    "@botzvn/backend": "workspace:*"
+  }
+}

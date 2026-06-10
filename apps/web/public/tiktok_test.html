@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scroll Diagnostic — Record &amp; Compare</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        body, html {
+            margin: 0; padding: 0; height: 100%; overflow: hidden;
+            background: #000; font-family: -apple-system, system-ui, sans-serif; color: #fff;
+        }
+
+        #feed-container {
+            height: 100vh; width: 100vw; position: relative;
+            transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        .video-card {
+            height: 100vh; width: 100vw;
+            display: flex; align-items: center; justify-content: center; flex-direction: column;
+        }
+        .video-card:nth-child(1) { background: #1e1b4b; }
+        .video-card:nth-child(2) { background: #14532d; }
+        .video-card:nth-child(3) { background: #701a75; }
+        .video-card:nth-child(4) { background: #7f1d1d; }
+        .video-card:nth-child(5) { background: #083344; }
+        h1 { margin: 0; font-size: 48px; text-shadow: 2px 2px 4px rgba(0,0,0,0.5); }
+        p { font-size: 18px; color: #94a3b8; }
+
+        /* ── Dashboard ───────────────────────────── */
+        .dashboard {
+            position: fixed; top: 16px; right: 16px;
+            background: rgba(0,0,0,0.92); border: 1px solid #333;
+            padding: 12px 14px; border-radius: 10px; z-index: 100;
+            width: 300px; pointer-events: none; font-size: 12px;
+        }
+        .metric { display: flex; justify-content: space-between; margin: 4px 0; font-family: monospace; }
+        .val { font-weight: bold; }
+        .val.cyan  { color: #25f4ee; }
+        .val.green { color: #4ade80; }
+        .val.amber { color: #fbbf24; }
+        .val.red   { color: #f87171; }
+        .val.gray  { color: #9ca3af; }
+        .section-label { font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; color: #555; margin-top: 8px; }
+        hr.sep { border: none; border-top: 1px solid #222; margin: 6px 0; }
+
+        .threshold-bar { height: 6px; background: #222; border-radius: 3px; margin-top: 6px; position: relative; overflow: hidden; }
+        .threshold-fill { height: 100%; width: 0%; background: #25f4ee; transition: width 0.05s; }
+
+        /* ── Comparison Report (shown after diagnostic) ────── */
+        #report-overlay {
+            display: none; position: fixed; inset: 0; z-index: 200;
+            background: rgba(0,0,0,0.95); overflow-y: auto; padding: 30px;
+        }
+        #report-overlay.visible { display: block; }
+        .report-card { max-width: 900px; margin: 0 auto; }
+        .report-card h2 { color: #25f4ee; margin-bottom: 16px; }
+        .report-table { width: 100%; border-collapse: collapse; font-family: monospace; font-size: 11px; }
+        .report-table th { text-align: left; padding: 6px 8px; background: #111; color: #888; border-bottom: 1px solid #333; position: sticky; top: 0; }
+        .report-table td { padding: 4px 8px; border-bottom: 1px solid #1a1a1a; }
+        .report-table tr.mismatch td { background: rgba(239,68,68,0.15); }
+        .report-table tr.match td { color: #6b7280; }
+        .summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 24px; }
+        .summary-box { background: #111; border: 1px solid #222; border-radius: 8px; padding: 12px; }
+        .summary-box .label { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.05em; }
+        .summary-box .value { font-size: 22px; font-weight: bold; margin-top: 4px; font-family: monospace; }
+        .summary-box .value.ok { color: #4ade80; }
+        .summary-box .value.bad { color: #f87171; }
+        .summary-box .value.warn { color: #fbbf24; }
+    </style>
+</head>
+<body>
+
+    <!-- ── Dashboard ──────────────────────────────── -->
+    <div class="dashboard">
+        <strong style="color:#25f4ee">🔬 Scroll Diagnostic</strong>
+        <div class="section-label">Feed State</div>
+        <div class="metric"><span>Video:</span> <span class="val cyan" id="vidIndex">1 / 5</span></div>
+        <div class="metric"><span>Mode:</span> <span class="val green" id="mode">Idle</span></div>
+        <hr class="sep">
+        <div class="section-label">Accumulator</div>
+        <div class="metric"><span>ΔY Acc:</span> <span class="val amber" id="wheelAcc">0.0</span></div>
+        <div class="metric"><span>Threshold:</span> <span class="val gray">150 px</span></div>
+        <div class="threshold-bar"><div class="threshold-fill" id="barFill"></div></div>
+        <hr class="sep">
+        <div class="section-label">Capture Stats</div>
+        <div class="metric"><span>Events captured:</span> <span class="val gray" id="captureCount">0</span></div>
+        <div class="metric"><span>Total ΔY:</span> <span class="val gray" id="captureDY">0</span></div>
+        <div class="metric"><span>Trusted / Synth:</span> <span class="val gray" id="captureTrust">0 / 0</span></div>
+    </div>
+
+    <!-- ── Report Overlay ─────────────────────────── -->
+    <div id="report-overlay">
+        <div class="report-card" id="report-content"></div>
+    </div>
+
+    <!-- ── Feed ───────────────────────────────────── -->
+    <div id="feed-container">
+        <div class="video-card"><h1>▶ Video 1</h1><p>Start — scroll down to advance</p></div>
+        <div class="video-card"><h1>▶ Video 2</h1><p>Target — accumulator must exceed 150px</p></div>
+        <div class="video-card"><h1>▶ Video 3</h1><p>Video 3</p></div>
+        <div class="video-card"><h1>▶ Video 4</h1><p>Video 4</p></div>
+        <div class="video-card"><h1>▶ Video 5</h1><p>End of feed 🎉</p></div>
+    </div>
+
+    <script>
+        // ════════════════════════════════════════════════════════════════════
+        // SCROLL-SNAP EMULATOR (mirrors TikTok's real behavior)
+        // ════════════════════════════════════════════════════════════════════
+        const THRESHOLD = 150;
+        const MAX_VIDEOS = 5;
+        let currentIndex = 0, accumulator = 0, isAnimating = false, resetTimeout = null;
+        const container = document.getElementById('feed-container');
+
+        function updateView() {
+            container.style.transform = `translateY(-${currentIndex * 100}vh)`;
+            document.getElementById('vidIndex').textContent = `${currentIndex + 1} / ${MAX_VIDEOS}`;
+        }
+
+        // ════════════════════════════════════════════════════════════════════
+        // EVENT CAPTURE SYSTEM — exposed to Go via window.__diag
+        // ════════════════════════════════════════════════════════════════════
+        window.__diag = {
+            _events: [],
+            _active: false,
+            _startT: 0,
+            _trusted: 0,
+            _synth: 0,
+
+            // Called by Go: start capturing all wheel events
+            startCapture: function() {
+                this._events = [];
+                this._active = true;
+                this._startT = performance.now();
+                this._trusted = 0;
+                this._synth = 0;
+                // Reset feed to video 1
+                currentIndex = 0;
+                accumulator = 0;
+                isAnimating = false;
+                updateView();
+                document.getElementById('mode').textContent = 'Capturing';
+                document.getElementById('mode').className = 'val amber';
+                console.log('[Diag] Capture started');
+            },
+
+            // Called by Go: stop capturing and return results
+            stopCapture: function() {
+                this._active = false;
+                document.getElementById('mode').textContent = 'Done';
+                document.getElementById('mode').className = 'val green';
+                console.log(`[Diag] Capture stopped: ${this._events.length} events`);
+                return {
+                    events: this._events,
+                    finalVideoIndex: currentIndex,
+                    totalEvents: this._events.length,
+                    trustedCount: this._trusted,
+                    synthCount: this._synth,
+                };
+            },
+
+            // Called by Go: get current state (for polling)
+            getState: function() {
+                return {
+                    capturing: this._active,
+                    eventCount: this._events.length,
+                    currentVideo: currentIndex,
+                    accumulator: accumulator,
+                };
+            },
+
+            // Called by Go: reset everything
+            reset: function() {
+                this._events = [];
+                this._active = false;
+                this._trusted = 0;
+                this._synth = 0;
+                currentIndex = 0;
+                accumulator = 0;
+                isAnimating = false;
+                clearTimeout(resetTimeout);
+                updateView();
+                document.getElementById('captureCount').textContent = '0';
+                document.getElementById('captureDY').textContent = '0';
+                document.getElementById('captureTrust').textContent = '0 / 0';
+                document.getElementById('wheelAcc').textContent = '0.0';
+                document.getElementById('barFill').style.width = '0%';
+                document.getElementById('mode').textContent = 'Idle';
+                document.getElementById('mode').className = 'val green';
+                // Hide report if visible
+                document.getElementById('report-overlay').classList.remove('visible');
+            },
+
+            // Called by Go: render comparison report
+            showReport: function(reportJSON) {
+                const report = typeof reportJSON === 'string' ? JSON.parse(reportJSON) : reportJSON;
+                renderReport(report);
+            }
+        };
+
+        // ════════════════════════════════════════════════════════════════════
+        // WHEEL EVENT HANDLER
+        // ════════════════════════════════════════════════════════════════════
+        window.addEventListener('wheel', (e) => {
+            e.preventDefault();
+
+            // ── Capture if active ──
+            if (window.__diag._active) {
+                const relT = Math.round(performance.now() - window.__diag._startT);
+                window.__diag._events.push({
+                    t: relT,
+                    dy: e.deltaY,
+                    dx: e.deltaX,
+                    cx: Math.round(e.clientX),
+                    cy: Math.round(e.clientY),
+                    trusted: e.isTrusted,
+                });
+                if (e.isTrusted) window.__diag._trusted++; else window.__diag._synth++;
+
+                // Update dashboard
+                document.getElementById('captureCount').textContent = window.__diag._events.length;
+                document.getElementById('captureDY').textContent = 
+                    window.__diag._events.reduce((s, ev) => s + ev.dy, 0).toFixed(0);
+                document.getElementById('captureTrust').textContent = 
+                    `${window.__diag._trusted} / ${window.__diag._synth}`;
+            }
+
+            if (isAnimating) return;
+
+            // ── Accumulate (TikTok scroll-snap behavior) ──
+            accumulator += e.deltaY;
+            const absAcc = Math.abs(accumulator);
+            document.getElementById('wheelAcc').textContent = accumulator.toFixed(1);
+            const pct = Math.min((absAcc / THRESHOLD) * 50, 100);
+            document.getElementById('barFill').style.width = pct + '%';
+
+            if (absAcc >= THRESHOLD) {
+                isAnimating = true;
+                // Player sends positive deltaY for scroll-down (standard convention)
+                if (accumulator > 0 && currentIndex < MAX_VIDEOS - 1) currentIndex++;
+                else if (accumulator < 0 && currentIndex > 0) currentIndex--;
+                updateView();
+                setTimeout(() => {
+                    isAnimating = false;
+                    accumulator = 0;
+                    document.getElementById('barFill').style.width = '0%';
+                    document.getElementById('wheelAcc').textContent = '0.0';
+                }, 600);
+            } else {
+                clearTimeout(resetTimeout);
+                resetTimeout = setTimeout(() => {
+                    accumulator = 0;
+                    document.getElementById('barFill').style.width = '0%';
+                    document.getElementById('wheelAcc').textContent = '0.0';
+                }, 200);
+            }
+        }, { passive: false });
+
+        // ════════════════════════════════════════════════════════════════════
+        // COMPARISON REPORT RENDERER
+        // ════════════════════════════════════════════════════════════════════
+        function renderReport(report) {
+            const overlay = document.getElementById('report-overlay');
+            const content = document.getElementById('report-content');
+            const s = report.summary;
+
+            const matchClass = (ok) => ok ? 'ok' : 'bad';
+
+            let html = `<h2>📊 Scroll Diagnostic Report</h2>`;
+
+            // Summary boxes
+            html += `<div class="summary-grid">`;
+            html += summaryBox('Sent Events', s.sentCount, 'gray');
+            html += summaryBox('Received Events', s.receivedCount, s.receivedCount === s.sentCount ? 'ok' : 'bad');
+            html += summaryBox('Missing', s.missingEvents, s.missingEvents === 0 ? 'ok' : 'bad');
+            html += summaryBox('Sent ΔY Total', s.totalSentDY.toFixed(0), 'gray');
+            html += summaryBox('Received ΔY Total', s.totalReceivedDY.toFixed(0),
+                Math.abs(s.totalSentDY - s.totalReceivedDY) < 5 ? 'ok' : 'bad');
+            html += summaryBox('ΔY Difference', s.dyDifference.toFixed(1),
+                Math.abs(s.dyDifference) < 5 ? 'ok' : 'bad');
+            html += summaryBox('All isTrusted', s.allTrusted ? 'Yes ✔' : 'No ✘',
+                s.allTrusted ? 'ok' : 'warn');
+            html += summaryBox('Snap Triggered', s.scrollSnapTriggered ? 'Yes ✔' : 'No ✘',
+                s.scrollSnapTriggered ? 'ok' : 'bad');
+            html += summaryBox('Final Video', `${s.finalVideoIndex + 1} / 5`,
+                s.finalVideoIndex > 0 ? 'ok' : 'bad');
+            html += `</div>`;
+
+            // Diagnosis
+            html += `<div style="background:#111;border:1px solid #333;border-radius:8px;padding:14px;margin-bottom:20px;">`;
+            html += `<div style="font-size:13px;font-weight:bold;color:#fbbf24;margin-bottom:8px;">🔍 Diagnosis</div>`;
+            if (s.receivedCount === 0) {
+                html += `<p style="color:#f87171">❌ No events received. CDP events are not reaching the page at all. Check coordinates — events may be dispatched outside the viewport.</p>`;
+            } else if (s.missingEvents > 0) {
+                html += `<p style="color:#fbbf24">⚠ ${s.missingEvents} events lost. Some CDP events were dropped — possibly due to timing issues or event coalescing.</p>`;
+            } else if (Math.abs(s.dyDifference) > 5) {
+                html += `<p style="color:#fbbf24">⚠ deltaY mismatch: sent ${s.totalSentDY.toFixed(0)} but received ${s.totalReceivedDY.toFixed(0)}. Values are being modified.</p>`;
+            } else if (!s.scrollSnapTriggered) {
+                html += `<p style="color:#f87171">❌ All events received correctly but scroll-snap did NOT trigger. The accumulator never reached ${THRESHOLD}px threshold. This means events arrive too slowly (accumulator resets between events via 200ms timeout).</p>`;
+            } else {
+                html += `<p style="color:#4ade80">✅ All events matched. Scroll-snap triggered successfully. Feed advanced to Video ${s.finalVideoIndex + 1}.</p>`;
+            }
+            html += `</div>`;
+
+            // Event-by-event comparison table
+            html += `<h3 style="color:#888;font-size:13px;margin-bottom:8px;">Event Comparison (sent → received)</h3>`;
+            html += `<div style="max-height:400px;overflow-y:auto;border:1px solid #222;border-radius:8px;">`;
+            html += `<table class="report-table"><thead><tr>`;
+            html += `<th>#</th><th>Sent ΔY</th><th>Recv ΔY</th><th>Match?</th>`;
+            html += `<th>Sent (X,Y)</th><th>Recv (X,Y)</th><th>Trusted</th><th>Recv T(ms)</th>`;
+            html += `</tr></thead><tbody>`;
+
+            const sent = report.sentEvents || [];
+            const recv = report.receivedEvents || [];
+            const maxLen = Math.max(sent.length, recv.length);
+
+            for (let i = 0; i < Math.min(maxLen, 200); i++) {
+                const se = sent[i] || {};
+                const re = recv[i] || {};
+                const dyMatch = se.dy !== undefined && re.dy !== undefined && Math.abs(se.dy - re.dy) < 0.5;
+                const cls = dyMatch ? 'match' : 'mismatch';
+                html += `<tr class="${cls}">`;
+                html += `<td>${i + 1}</td>`;
+                html += `<td>${se.dy !== undefined ? se.dy.toFixed(1) : '—'}</td>`;
+                html += `<td>${re.dy !== undefined ? re.dy.toFixed(1) : '—'}</td>`;
+                html += `<td>${dyMatch ? '✔' : '✘'}</td>`;
+                html += `<td>${se.cx !== undefined ? `(${Math.round(se.cx)},${Math.round(se.cy)})` : '—'}</td>`;
+                html += `<td>${re.cx !== undefined ? `(${re.cx},${re.cy})` : '—'}</td>`;
+                html += `<td style="color:${re.trusted ? '#4ade80' : '#fbbf24'}">${re.trusted !== undefined ? (re.trusted ? '✔' : '✘') : '—'}</td>`;
+                html += `<td>${re.t !== undefined ? re.t : '—'}</td>`;
+                html += `</tr>`;
+            }
+            if (maxLen > 200) {
+                html += `<tr><td colspan="8" style="text-align:center;color:#666">... ${maxLen - 200} more rows truncated</td></tr>`;
+            }
+            html += `</tbody></table></div>`;
+
+            html += `<div style="margin-top:20px;text-align:center;">`;
+            html += `<button onclick="document.getElementById('report-overlay').classList.remove('visible')" 
+                      style="padding:8px 24px;background:#25f4ee;color:#000;border:none;border-radius:6px;font-weight:bold;cursor:pointer;">Close Report</button>`;
+            html += `</div>`;
+
+            content.innerHTML = html;
+            overlay.classList.add('visible');
+        }
+
+        function summaryBox(label, value, cls) {
+            return `<div class="summary-box"><div class="label">${label}</div><div class="value ${cls}">${value}</div></div>`;
+        }
+    </script>
+</body>
+</html>

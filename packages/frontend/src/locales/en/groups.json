@@ -1,0 +1,18 @@
+{
+  "title": "Groups",
+  "create": "Create Group",
+  "edit": "Edit",
+  "delete": "Delete",
+  "name": "Group Name",
+  "description": "Description",
+  "color": "Color",
+  "profileCount": "Profiles",
+  "actions": "Actions",
+  "cancel": "Cancel",
+  "save": "Save",
+  "uncategorized": "Uncategorized",
+  "all": "All Profiles",
+  "confirmDelete": "Are you sure you want to delete this group? Profiles will NOT be deleted.",
+  "selectColor": "Select color",
+  "noGroups": "No groups found. Create one to organize your profiles."
+}

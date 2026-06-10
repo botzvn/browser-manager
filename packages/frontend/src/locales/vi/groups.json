@@ -1,0 +1,18 @@
+{
+  "title": "Quản lý Nhóm",
+  "create": "Tạo Nhóm",
+  "edit": "Sửa",
+  "delete": "Xóa",
+  "name": "Tên nhóm",
+  "description": "Mô tả",
+  "color": "Màu sắc",
+  "profileCount": "Profiles",
+  "actions": "Hành động",
+  "cancel": "Hủy bỏ",
+  "save": "Lưu thay đổi",
+  "uncategorized": "Chưa phân loại",
+  "all": "Tất cả Profiles",
+  "confirmDelete": "Bạn có chắc muốn xóa nhóm này? Các profiles trong nhóm sẽ KHÔNG bị xóa mà sẽ trở về trạng thái Chưa phân loại.",
+  "selectColor": "Chọn màu",
+  "noGroups": "Chưa có nhóm nào. Hãy tạo nhóm để sắp xếp profile của bạn."
+}

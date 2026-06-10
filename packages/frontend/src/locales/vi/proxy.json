@@ -1,0 +1,20 @@
+{
+  "title": "Quản lý Proxy",
+  "description": "Quản lý {{count}} proxies cho các hồ sơ của bạn",
+  "checkAll": "Kiểm tra tất cả",
+  "import": "Nhập nhanh",
+  "importTitle": "Nhập hàng loạt Proxy",
+  "importFormat": "Định dạng: IP:PORT:USER:PASS (mỗi dòng một proxy)",
+  "noProxiesTitle": "Chưa có Proxy nào",
+  "noProxiesDesc": "Thêm proxy HTTP hoặc SOCKS5 của bạn để cô lập mạng lưới một cách an toàn.",
+  "protocol": "Giao thức",
+  "auth": "Xác thực",
+  "geo": "Quốc gia",
+  "status": "Trạng thái / Ping",
+  "authenticated": "Có",
+  "none": "Không",
+  "checking": "Đang kiểm tra...",
+  "dead": "CHẾT",
+  "live": "SỐNG",
+  "delete": "Xóa Proxy"
+}

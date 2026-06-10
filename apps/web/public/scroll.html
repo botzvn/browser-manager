@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scroll Playback Diagnostics v2</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background: #0f172a;
+            color: #f8fafc;
+            margin: 0;
+            padding: 20px;
+            height: 500vh;
+        }
+        .dashboard {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: rgba(30, 41, 59, 0.95);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            z-index: 1000;
+            width: 380px;
+            border: 1px solid #334155;
+            backdrop-filter: blur(8px);
+        }
+        h2 { margin-top: 0; color: #38bdf8; font-size: 18px; border-bottom: 1px solid #334155; padding-bottom: 10px; display: flex; justify-content: space-between;}
+        h2 span.status { font-size: 12px; padding: 4px 8px; border-radius: 4px; background: #475569; color: white; }
+        
+        .section-title { font-size: 12px; text-transform: uppercase; color: #94a3b8; font-weight: bold; margin: 15px 0 5px 0; letter-spacing: 1px;}
+        
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            font-family: Monaco, Consolas, monospace;
+            font-size: 14px;
+            align-items: center;
+        }
+        .val { color: #60a5fa; font-weight: bold; }
+        .val.baseline { color: #f472b6; }
+        .val.diff { padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+        .diff-good { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
+        .diff-bad { background: rgba(239, 68, 68, 0.2); color: #f87171; }
+        
+        .btn-group { display: flex; gap: 10px; margin-top: 15px; }
+        button {
+            flex: 1; padding: 10px; border-radius: 6px; border: none; font-weight: bold; cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-baseline { background: #3b82f6; color: white; }
+        .btn-baseline:hover { background: #2563eb; }
+        .btn-reset { background: #475569; color: white; }
+        .btn-reset:hover { background: #334155; }
+        
+        .target-box {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            height: 300px;
+            background: rgba(255, 255, 255, 0.02);
+            border: 2px dashed #475569;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            color: #475569;
+            font-weight: bold;
+            font-size: 20px;
+        }
+
+        .chart-bar {
+            height: 6px; background: #334155; border-radius: 3px; margin-top: 4px; overflow: hidden;
+            display: flex;
+        }
+        .chart-fill.baseline { background: #f472b6; width: 0%; transition: width 0.3s; }
+        .chart-fill.current { background: #60a5fa; width: 0%; transition: width 0.3s; margin-top: -6px; opacity: 0.8;}
+    </style>
+</head>
+<body>
+
+    <div class="target-box">TEST AREA</div>
+
+    <div class="dashboard">
+        <h2>Comparator <span class="status" id="statusBadge">Live</span></h2>
+        
+        <div class="metric"><span>Viewport:</span> <span class="val" id="viewport"></span></div>
+        <div class="metric"><span>Abs Mouse (X, Y):</span> <span class="val" id="mousePos">0, 0</span></div>
+
+        <div class="section-title">Baseline (Hand Record)</div>
+        <div class="metric"><span>Delta Y Target:</span> <span class="val baseline" id="baseDeltaY">0.00</span></div>
+        <div class="metric"><span>Events Target:</span> <span class="val baseline" id="baseEvents">0</span></div>
+
+        <div class="section-title">Current (Playback Mode)</div>
+        <div class="metric"><span>Delta Y Act:</span> <span class="val" id="curDeltaY">0.00</span></div>
+        <div class="metric"><span>Events Act:</span> <span class="val" id="curEvents">0</span></div>
+        
+        <div class="section-title">Variance (Sai số)</div>
+        <div class="metric">
+            <span>Distance Diff:</span> 
+            <span class="val diff diff-good" id="diffDeltaY">0.00px (0%)</span>
+        </div>
+
+        <div class="chart-bar">
+            <div class="chart-fill baseline" id="barBase"></div>
+        </div>
+        <div class="chart-bar" style="background: transparent;">
+            <div class="chart-fill current" id="barCur"></div>
+        </div>
+
+        <div class="btn-group">
+            <button class="btn-baseline" onclick="saveBaseline()">1. Save Baseline & Reset</button>
+            <button class="btn-reset" onclick="resetAll()">2. Clear Defaults</button>
+        </div>
+    </div>
+
+    <script>
+        let baseDY = 0;
+        let baseCount = 0;
+        
+        let curDY = 0;
+        let curCount = 0;
+
+        const elViewport = document.getElementById('viewport');
+        const elMousePos = document.getElementById('mousePos');
+        
+        const elBaseDY = document.getElementById('baseDeltaY');
+        const elBaseEvents = document.getElementById('baseEvents');
+        
+        const elCurDY = document.getElementById('curDeltaY');
+        const elCurEvents = document.getElementById('curEvents');
+        
+        const elDiffDY = document.getElementById('diffDeltaY');
+        const barBase = document.getElementById('barBase');
+        const barCur = document.getElementById('barCur');
+
+        function updateViewport() {
+            elViewport.textContent = `${window.innerWidth} x ${window.innerHeight}`;
+        }
+        window.addEventListener('resize', updateViewport);
+        updateViewport();
+
+        function updateUI() {
+            elBaseDY.textContent = baseDY.toFixed(2);
+            elBaseEvents.textContent = baseCount;
+            elCurDY.textContent = curDY.toFixed(2);
+            elCurEvents.textContent = curCount;
+
+            const diff = Math.abs(curDY - baseDY);
+            let pct = 0;
+            if (baseDY !== 0) {
+                pct = (diff / Math.abs(baseDY)) * 100;
+            }
+
+            elDiffDY.textContent = `${(curDY - baseDY).toFixed(2)}px (${pct.toFixed(2)}%)`;
+            
+            if (pct < 1 && diff < 5) {
+                elDiffDY.className = 'val diff diff-good';
+            } else {
+                elDiffDY.className = 'val diff diff-bad';
+            }
+
+            // Update Progress bars (Max roughly 5000px for scale)
+            const MAX_SCALE = 5000;
+            barBase.style.width = Math.min(100, Math.abs(baseDY) / MAX_SCALE * 100) + '%';
+            barCur.style.width = Math.min(100, Math.abs(curDY) / MAX_SCALE * 100) + '%';
+        }
+
+        window.addEventListener('wheel', (e) => {
+            curDY += e.deltaY;
+            curCount++;
+            updateUI();
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            elMousePos.textContent = `${e.clientX}, ${e.clientY}`;
+        });
+
+        function saveBaseline() {
+            if (curDY === 0) {
+                alert("Vui lòng cuộn chuột một chút để có data trước khi Save Baseline!");
+                return;
+            }
+            // Move current stats to baseline
+            baseDY = curDY;
+            baseCount = curCount;
+            
+            // Reset current tracker for playback testing
+            curDY = 0;
+            curCount = 0;
+            
+            window.scrollTo({top: 0, behavior: 'auto'});
+            updateUI();
+            
+            document.getElementById('statusBadge').textContent = 'Ready for Replay';
+            document.getElementById('statusBadge').style.background = '#10b981'; // green
+        }
+
+        function resetAll() {
+            baseDY = 0;
+            baseCount = 0;
+            curDY = 0;
+            curCount = 0;
+            updateUI();
+            window.scrollTo({top: 0, behavior: 'auto'});
+            document.getElementById('statusBadge').textContent = 'Live';
+            document.getElementById('statusBadge').style.background = '#475569';
+        }
+    </script>
+</body>
+</html>

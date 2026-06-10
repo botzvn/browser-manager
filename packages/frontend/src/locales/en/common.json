@@ -1,0 +1,14 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "home": "Home"
+  },
+  "header": {
+    "account": "Account",
+    "settings": "Settings",
+    "logout": "Log Out"
+  }
+}

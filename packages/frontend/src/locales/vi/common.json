@@ -1,0 +1,14 @@
+{
+  "common": {
+    "loading": "Đang tải...",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "delete": "Xóa",
+    "home": "Trang chủ"
+  },
+  "header": {
+    "account": "Tài khoản",
+    "settings": "Cài đặt",
+    "logout": "Đăng xuất"
+  }
+}

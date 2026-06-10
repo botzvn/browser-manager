@@ -1,0 +1,18 @@
+{
+  "sections": {
+    "efficiency": "Efficiency",
+    "other": "Other"
+  },
+  "items": {
+    "Profiles": "Profiles",
+    "Proxy": "Proxy",
+    "Groups": "Groups",
+    "Application": "Application",
+    "Extensions": "Extensions",
+    "Synchronizer": "Synchronizer"
+  },
+  "stats": {
+    "upgrade": "Upgrade",
+    "profiles": "Profiles:"
+  }
+}

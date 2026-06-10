@@ -1,0 +1,25 @@
+{
+  "name": "botzvn-manager-core",
+  "version": "0.1.0",
+  "private": false,
+  "type": "module",
+  "packageManager": "pnpm@10.0.0",
+  "scripts": {
+    "dev:api": "BOTZVN_EDITION=core pnpm --filter @botzvn/api dev",
+    "dev:web": "BOTZVN_EDITION=core BOTZVN_RUNTIME=web pnpm --filter @botzvn/web dev",
+    "build:web": "BOTZVN_EDITION=core BOTZVN_RUNTIME=web pnpm --filter @botzvn/web build",
+    "check:api": "BOTZVN_EDITION=core pnpm --filter @botzvn/api check",
+    "check": "pnpm check:api && pnpm build:web"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "better-sqlite3"
+    ]
+  }
+}

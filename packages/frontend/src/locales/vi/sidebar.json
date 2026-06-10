@@ -1,0 +1,18 @@
+{
+  "sections": {
+    "efficiency": "Tiện ích ứng dụng",
+    "other": "Thông tin khác"
+  },
+  "items": {
+    "Profiles": "Profiles",
+    "Proxy": "Proxy",
+    "Groups": "Groups",
+    "Application": "Ứng dụng",
+    "Extensions": "Tiện ích mở rộng",
+    "Synchronizer": "Đồng bộ hóa"
+  },
+  "stats": {
+    "upgrade": "Nâng cấp",
+    "profiles": "Hồ sơ:"
+  }
+}

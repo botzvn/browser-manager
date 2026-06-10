@@ -1,0 +1,30 @@
+{
+  "title": "Tiện ích mở rộng",
+  "installedCount_zero": "Chưa cài đặt tiện ích nào",
+  "installedCount_one": "Đã cài đặt 1 tiện ích",
+  "installedCount_other": "Đã cài đặt {{count}} tiện ích",
+  "searchPlaceholder": "Tìm kiếm tiện ích...",
+  "btnInstall": "Cài đặt Tiện ích",
+  "loading": "Đang tải tiện ích...",
+  "noExtensionsTitle": "Không tìm thấy tiện ích nào",
+  "noExtensionsDesc": "Tải lên tệp .zip hoặc cài đặt từ Chrome Web Store",
+  "table": {
+    "name": "Tên",
+    "version": "Phiên bản",
+    "type": "Loại",
+    "source": "Nguồn",
+    "status": "Trạng thái",
+    "actions": "Hành động"
+  },
+  "typeLabels": {
+    "ALL": "Tất cả",
+    "PERSONAL": "Cá nhân",
+    "SYSTEM": "Hệ thống"
+  },
+  "deleteConfirm": "Bạn có chắc muốn xóa tiện ích \"{{name}}\"? Hành động này không thể hoàn tác.",
+  "status": {
+    "active": "Hoạt động",
+    "disabled": "Đã tắt"
+  },
+  "sourceLocal": "Cục bộ"
+}
